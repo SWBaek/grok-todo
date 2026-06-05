@@ -1,1 +1,1608 @@
-[FULL UPDATED INDEX.HTML CONTENT WITH RESIZE/MOVE FEATURE - see local file for exact]
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timebox • 린 타임박싱 스케줄러</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --fg: #E0E0E0;
+      --muted: #888;
+      --accent: #00E676;
+      --accent-dark: #00b35c;
+      --block-bg: #1f2a24;
+      --line: #333;
+      --work-bg: #1a211d;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .app {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Left Panel */
+    .left {
+      width: 300px;
+      min-width: 220px;
+      max-width: 480px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--line);
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+      background: #0f0f0f;
+    }
+
+    .header {
+      margin-bottom: 4px;
+    }
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      margin-bottom: 2px;
+    }
+    .clock {
+      font-size: 13px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .fixed-templates {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .fixed-btn {
+      background: #1f1f1f;
+      border: 1px solid var(--line);
+      color: var(--fg);
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+    .fixed-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .task-input {
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid var(--line);
+      color: var(--fg);
+      padding: 10px 12px;
+      font-size: 14px;
+      border-radius: 6px;
+      outline: none;
+    }
+    .task-input:focus {
+      border-color: var(--accent);
+    }
+
+    .control-row {
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      flex: 1;
+      padding: 9px 12px;
+      font-size: 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: #1f1f1f;
+      color: var(--fg);
+      transition: all 0.1s ease;
+    }
+    .btn:hover {
+      border-color: #555;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #121212;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    .btn-primary:hover {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+    }
+    .btn-danger {
+      color: #ff6b6b;
+      border-color: #3a2a2a;
+    }
+
+    .status {
+      font-size: 11px;
+      color: var(--muted);
+      min-height: 16px;
+    }
+
+    /* Center (Timeline) + Rightmost List */
+    .center {
+      flex: 1.55;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-right: 1px solid var(--line);
+    }
+
+    .schedule-list-panel {
+      width: 26%;
+      min-width: 210px;
+      max-width: 280px;
+      display: flex;
+      flex-direction: column;
+      background: #0f0f0f;
+      border-left: 1px solid var(--line);
+      overflow: hidden;
+    }
+
+    .resizer {
+      width: 6px;
+      background: #222;
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background 0.1s ease, width 0.1s ease;
+      position: relative;
+    }
+    .resizer:hover {
+      background: var(--accent);
+      width: 8px;
+    }
+    .resizer.resizing {
+      background: var(--accent);
+      width: 8px;
+    }
+    .resizer::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px;
+      height: 18px;
+      background: #555;
+      box-shadow: 3px 0 0 #555;
+      pointer-events: none;
+      transition: background 0.1s;
+    }
+    .resizer:hover::before,
+    .resizer.resizing::before {
+      background: #121212;
+      box-shadow: 3px 0 0 #121212;
+    }
+
+    .timeline-header {
+      padding: 14px 20px 10px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      background: #0f0f0f;
+    }
+    .timeline-title {
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .view-controls {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .view-btn {
+      font-size: 11px;
+      padding: 4px 9px;
+      background: #1f1f1f;
+      border: 1px solid var(--line);
+      color: var(--fg);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .view-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .range-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 8px;
+    }
+
+    .timeline-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      position: relative;
+      background: #121212;
+    }
+
+    .timeline-container {
+      position: relative;
+      margin-left: 58px; /* space for labels */
+      margin-right: 12px;
+      min-height: 100%;
+    }
+
+    .hour-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--line);
+      z-index: 1;
+    }
+
+    .hour-label {
+      position: absolute;
+      left: -54px;
+      width: 48px;
+      text-align: right;
+      font-size: 11px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      z-index: 2;
+      user-select: none;
+    }
+
+    .work-bg {
+      position: absolute;
+      left: 0;
+      right: 0;
+      background: var(--work-bg);
+      z-index: 0;
+    }
+
+    .blocks-layer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .time-block {
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      background: var(--block-bg);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      overflow: hidden;
+      pointer-events: auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      min-height: 22px;
+    }
+    .time-block.fixed {
+      border-color: #ff9800;
+      background: #2a241a;
+    }
+    .block-content {
+      padding: 4px 6px;
+      font-size: 12px;
+      color: var(--fg);
+      height: 100%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 4px;
+      overflow: hidden;
+    }
+    .block-task {
+      flex: 1;
+      word-break: break-word;
+      line-height: 1.25;
+    }
+    .block-delete {
+      background: none;
+      border: none;
+      color: #ff6b6b;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 2px;
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+    .block-delete:hover {
+      opacity: 1;
+    }
+    .time-block.fixed .block-delete {
+      color: #ff9800;
+    }
+
+    .resize-handle {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 8px;
+      z-index: 25;
+      background: transparent;
+      transition: background-color 0.1s ease;
+    }
+    .resize-handle.top {
+      top: 0;
+      cursor: ns-resize;
+    }
+    .resize-handle.bottom {
+      bottom: 0;
+      cursor: ns-resize;
+    }
+    .time-block:hover .resize-handle {
+      background-color: rgba(0, 230, 118, 0.18);
+    }
+    .time-block.dragging {
+      opacity: 0.8;
+      z-index: 40;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .time-block.current {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.35);
+      z-index: 15;
+    }
+    .time-block {
+      cursor: move;
+    }
+
+    .selection-preview {
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      background: rgba(0, 230, 118, 0.18);
+      border: 1px dashed var(--accent);
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 15;
+      display: none;
+    }
+
+    .time-indicator {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #ff3b3b;
+      box-shadow: 0 0 6px #ff3b3b;
+      z-index: 20;
+      pointer-events: none;
+      display: none;
+    }
+    .time-indicator::after {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: -3px;
+      width: 8px;
+      height: 8px;
+      background: #ff3b3b;
+      border-radius: 50%;
+      box-shadow: 0 0 4px #ff3b3b;
+    }
+
+    .empty-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #555;
+      font-size: 12px;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    /* ===== 현재 일정 강조 (Left) ===== */
+    .current-info {
+      background: #1a1f1c;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 4px;
+    }
+    .current-info.hidden {
+      display: none;
+    }
+    .current-info.urgent {
+      border-color: #ffab40;
+      background: #2a2418;
+    }
+    .current-info.critical {
+      border-color: #ff5252;
+      background: #2a1818;
+      animation: pulse 1.2s infinite;
+    }
+    .current-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+    .current-task {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 4px;
+      color: var(--fg);
+    }
+    .current-remaining {
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .current-info.urgent .current-remaining {
+      color: #ffab40;
+    }
+    .current-info.critical .current-remaining {
+      color: #ff5252;
+    }
+    .current-progress {
+      height: 3px;
+      background: #333;
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .current-progress-bar {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.4s linear;
+    }
+    .current-info.urgent .current-progress-bar {
+      background: #ffab40;
+    }
+    .current-info.critical .current-progress-bar {
+      background: #ff5252;
+    }
+    .current-next-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.75; }
+    }
+
+    /* ===== 일정표 리스트 (Rightmost) ===== */
+    .list-header {
+      padding: 12px 14px 8px;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--fg);
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+
+    .schedule-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 4px;
+      font-size: 12px;
+    }
+
+    .list-item {
+      padding: 7px 10px;
+      margin-bottom: 3px;
+      border-radius: 6px;
+      border-left: 3px solid transparent;
+      background: #161616;
+      cursor: default;
+      transition: background 0.1s ease;
+    }
+    .list-item:hover {
+      background: #1f1f1f;
+    }
+    .list-item.current {
+      border-left-color: var(--accent);
+      background: #1a2a22;
+    }
+    .list-item.past {
+      opacity: 0.55;
+    }
+
+    .list-time {
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 1px;
+    }
+
+    .list-task {
+      color: var(--fg);
+      line-height: 1.25;
+      font-weight: 500;
+    }
+
+    .list-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 3px;
+    }
+
+    .list-duration {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .list-badge {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: #2a2a2a;
+      color: #aaa;
+    }
+    .list-badge.fixed {
+      background: #3a2f18;
+      color: #ffab40;
+    }
+    .list-badge.current {
+      background: var(--accent);
+      color: #121212;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Left Panel -->
+    <div class="left">
+      <div class="header">
+        <h1>Timebox</h1>
+        <div id="clock" class="clock">0000-00-00 00:00:00</div>
+      </div>
+
+      <!-- 현재 진행 중인 스케줄 강조 -->
+      <div id="current-info" class="current-info hidden">
+        <div class="current-label">현재 일정</div>
+        <div id="current-task" class="current-task"></div>
+        <div id="current-remaining" class="current-remaining"></div>
+        <div class="current-progress">
+          <div id="current-progress-bar" class="current-progress-bar"></div>
+        </div>
+        <div id="current-next-hint" class="current-next-hint"></div>
+      </div>
+
+      <div>
+        <div class="section-title">고정 템플릿</div>
+        <div class="fixed-templates">
+          <button class="fixed-btn" data-start="09:00" data-end="10:00" data-task="이메일 및 Jira 확인 (노이즈 필터링)">09:00 이메일</button>
+          <button class="fixed-btn" data-start="12:00" data-end="13:00" data-task="점심 식사 및 리셋">12:00 점심</button>
+          <button class="fixed-btn" data-start="16:00" data-end="17:00" data-task="최종 메일 확인">16:00 메일</button>
+          <button class="fixed-btn" id="apply-all-fixed" style="margin-left: auto;">전체 적용</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">태스크 입력</div>
+        <input id="task-input" type="text" class="task-input" placeholder="할 일을 입력한 후 타임라인을 드래그하세요" autocomplete="off">
+      </div>
+
+      <div>
+        <div class="section-title">시스템</div>
+        <div class="control-row">
+          <button id="reset-btn" class="btn btn-danger">초기화 (고정만 남김)</button>
+        </div>
+      </div>
+
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="resizer" id="left-resizer" title="드래그하여 좌측 패널 너비 조정"></div>
+
+    <!-- Center: Timeline -->
+    <div class="center">
+      <div class="timeline-header">
+        <div>
+          <span class="timeline-title">24시간 타임라인</span>
+          <span id="range-label" class="range-label">00:00 — 24:00</span>
+        </div>
+        <div class="view-controls">
+          <button class="view-btn" data-range="work">근무 (05-17)</button>
+          <button class="view-btn active" data-range="full">전체 (00-24)</button>
+          <button class="view-btn" data-range="evening">저녁포함 (04-22)</button>
+        </div>
+      </div>
+
+      <div class="timeline-wrapper" id="timeline-wrapper">
+        <div id="timeline-container" class="timeline-container">
+          <!-- Dynamic grid lines, labels, blocks, indicator, preview injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Rightmost: Human-readable Schedule List -->
+    <div class="schedule-list-panel">
+      <div class="list-header">
+        <span>오늘의 일정표</span>
+      </div>
+      <div id="schedule-list" class="schedule-list"></div>
+    </div>
+  </div>
+
+  <script>
+    // ============ Constants & State ============
+    const STORAGE_KEY = 'daily_schedule';
+    const FIXED_TEMPLATES = [
+      { start: "09:00", end: "10:00", task: "이메일 및 Jira 확인 (노이즈 필터링)" },
+      { start: "12:00", end: "13:00", task: "점심 식사 및 리셋" },
+      { start: "16:00", end: "17:00", task: "최종 메일 확인" }
+    ];
+
+    let schedule = {
+      last_updated: "",
+      timeblocks: []
+    };
+
+    let viewStart = 0;   // inclusive
+    let viewEnd = 24;    // exclusive
+
+    let isDragging = false;
+    let dragStartMin = 0;
+    let dragTask = "";
+
+    let activeBlockDrag = null; // for resize/move on existing blocks
+
+    const ROW_HEIGHT = 56; // px per hour
+
+    // ============ Time Helpers ============
+    function toMinutes(t) {
+      if (!t) return 0;
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + (m || 0);
+    }
+
+    function toTimeStr(minutes) {
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    function roundTo30(mins) {
+      return Math.round(mins / 30) * 30;
+    }
+
+    function getMinuteFromClientY(clientY, container) {
+      if (!container) return 0;
+      const rect = container.getBoundingClientRect();
+      const y = clientY - rect.top;
+      const totalMins = (viewEnd - viewStart) * 60;
+      const pxPerMin = rect.height / totalMins;
+      let min = viewStart * 60 + (y / pxPerMin);
+      return min;
+    }
+
+    function getCurrentMinutes() {
+      const d = new Date();
+      return d.getHours() * 60 + d.getMinutes();
+    }
+
+    function formatDate(d) {
+      return d.toISOString().slice(0, 10);
+    }
+
+    function getToday() {
+      return formatDate(new Date());
+    }
+
+    // ============ Storage ============
+    function saveSchedule() {
+      schedule.last_updated = getToday();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(schedule));
+    }
+
+    function loadSchedule() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const today = getToday();
+
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          schedule = parsed;
+
+          // Date rollover: clear non-fixed blocks if day changed
+          if (schedule.last_updated !== today) {
+            schedule.timeblocks = schedule.timeblocks.filter(b => b.is_fixed === true);
+            schedule.last_updated = today;
+            saveSchedule();
+          }
+        } catch (e) {
+          schedule = { last_updated: today, timeblocks: [] };
+        }
+      } else {
+        schedule = { last_updated: today, timeblocks: [] };
+      }
+    }
+
+    // ============ Overlap Check ============
+    function hasOverlap(newStart, newEnd) {
+      const ns = toMinutes(newStart);
+      const ne = toMinutes(newEnd);
+      return schedule.timeblocks.some(b => {
+        const bs = toMinutes(b.start);
+        const be = toMinutes(b.end);
+        return Math.max(ns, bs) < Math.min(ne, be);
+      });
+    }
+
+    // ============ Render Grid (lines + labels + work bg) ============
+    function renderGrid() {
+      const container = document.getElementById('timeline-container');
+      container.innerHTML = '';
+      container.style.height = `${(viewEnd - viewStart) * ROW_HEIGHT}px`;
+
+      const totalHours = viewEnd - viewStart;
+
+      // Work hour backgrounds first (lowest z)
+      for (let i = 0; i < totalHours; i++) {
+        const hour = viewStart + i;
+        if (hour >= 5 && hour < 17) {
+          const bg = document.createElement('div');
+          bg.className = 'work-bg';
+          bg.style.top = `${i * ROW_HEIGHT}px`;
+          bg.style.height = `${ROW_HEIGHT}px`;
+          container.appendChild(bg);
+        }
+      }
+
+      // Hour lines and labels
+      for (let i = 0; i <= totalHours; i++) {
+        const hour = viewStart + i;
+        const top = i * ROW_HEIGHT;
+
+        const line = document.createElement('div');
+        line.className = 'hour-line';
+        line.style.top = `${top}px`;
+        container.appendChild(line);
+
+        if (i < totalHours) {
+          const label = document.createElement('div');
+          label.className = 'hour-label';
+          label.textContent = `${String(hour).padStart(2, '0')}:00`;
+          label.style.top = `${top + 4}px`;
+          container.appendChild(label);
+        }
+      }
+
+      // Empty hint
+      if (schedule.timeblocks.length === 0) {
+        const hint = document.createElement('div');
+        hint.className = 'empty-hint';
+        hint.textContent = '좌측에 할 일을 입력하고 타임라인을 드래그하세요';
+        container.appendChild(hint);
+      }
+
+      // Drag is handled globally via initDragHandling (attached once)
+    }
+
+    // ============ Render Blocks ============
+    function renderBlocks() {
+      const container = document.getElementById('timeline-container');
+      // Remove old blocks + preview + indicator if they exist as direct children
+      const oldBlocks = container.querySelectorAll('.time-block, .selection-preview, .time-indicator');
+      oldBlocks.forEach(el => el.remove());
+
+      const totalViewMins = (viewEnd - viewStart) * 60;
+      const pxPerMin = container.offsetHeight / totalViewMins;
+
+      // Create blocks layer container (for absolute positioning inside timeline-container)
+      const blocksLayer = document.createElement('div');
+      blocksLayer.className = 'blocks-layer';
+
+      // Sort for consistent stacking
+      const sorted = [...schedule.timeblocks].sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
+
+      sorted.forEach(block => {
+        const startMin = toMinutes(block.start);
+        const endMin = toMinutes(block.end);
+
+        // Skip if completely outside view
+        if (endMin <= viewStart * 60 || startMin >= viewEnd * 60) return;
+
+        const visStart = Math.max(startMin, viewStart * 60);
+        const visEnd = Math.min(endMin, viewEnd * 60);
+
+        const top = (visStart - viewStart * 60) * pxPerMin;
+        const height = Math.max((visEnd - visStart) * pxPerMin, 20);
+
+        const el = document.createElement('div');
+        el.className = `time-block ${block.is_fixed ? 'fixed' : ''}`;
+        el.style.top = `${top}px`;
+        el.style.height = `${height}px`;
+        el.dataset.id = block.id;
+
+        el.innerHTML = `
+          <div class="resize-handle top" data-action="resize-start"></div>
+          <div class="block-content" data-action="move">
+            <span class="block-task">${escapeHtml(block.task)}</span>
+            <button class="block-delete" title="삭제">×</button>
+          </div>
+          <div class="resize-handle bottom" data-action="resize-end"></div>
+        `;
+
+        const delBtn = el.querySelector('.block-delete');
+        delBtn.addEventListener('click', (e) => {
+          e.stopImmediatePropagation();
+          schedule.timeblocks = schedule.timeblocks.filter(b => b.id !== block.id);
+          saveSchedule();
+          renderAll();
+          setStatus('블록 삭제됨');
+        });
+
+        blocksLayer.appendChild(el);
+      });
+
+      container.appendChild(blocksLayer);
+
+      // Re-create selection preview and time indicator elements
+      const preview = document.createElement('div');
+      preview.className = 'selection-preview';
+      preview.id = 'selection-preview';
+      container.appendChild(preview);
+
+      const indicator = document.createElement('div');
+      indicator.className = 'time-indicator';
+      indicator.id = 'time-indicator';
+      container.appendChild(indicator);
+
+      // Update indicator position immediately
+      updateTimeIndicator();
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function renderAll() {
+      renderGrid();
+      renderBlocks();
+      updateRangeLabel();
+      renderScheduleList();
+      updateCurrentSchedule();   // immediately refresh current highlight + list current state
+    }
+
+    // ============ Drag Logic (attached once to stable wrapper) ============
+    function initDragHandling() {
+      const wrapper = document.getElementById('timeline-wrapper');
+
+      wrapper.addEventListener('mousedown', (e) => {
+        const container = document.getElementById('timeline-container');
+        if (!container) return;
+
+        const taskInput = document.getElementById('task-input');
+        const task = taskInput.value.trim();
+
+        if (!task) {
+          setStatus('먼저 할 일을 입력하세요');
+          return;
+        }
+
+        const rect = container.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const totalMins = (viewEnd - viewStart) * 60;
+        const pxPerMin = rect.height / totalMins;
+
+        let startMin = viewStart * 60 + (y / pxPerMin);
+        startMin = roundTo30(Math.max(viewStart * 60, Math.min(startMin, viewEnd * 60 - 30)));
+
+        isDragging = true;
+        dragStartMin = startMin;
+        dragTask = task;
+
+        updatePreview(container, startMin, startMin + 30);
+      });
+
+      wrapper.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        const container = document.getElementById('timeline-container');
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const totalMins = (viewEnd - viewStart) * 60;
+        const pxPerMin = rect.height / totalMins;
+
+        let currentMin = viewStart * 60 + (y / pxPerMin);
+        currentMin = roundTo30(Math.max(viewStart * 60, Math.min(currentMin, viewEnd * 60)));
+
+        const start = Math.min(dragStartMin, currentMin);
+        const end = Math.max(dragStartMin, currentMin);
+
+        updatePreview(container, start, Math.max(end, start + 30));
+      });
+
+      // Global mouseup (captures end of drag even outside the panel)
+      document.addEventListener('mouseup', (e) => {
+        if (!isDragging) return;
+
+        const container = document.getElementById('timeline-container');
+        if (!container) {
+          isDragging = false;
+          return;
+        }
+
+        const rect = container.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const totalMins = (viewEnd - viewStart) * 60;
+        const pxPerMin = rect.height / totalMins;
+
+        let endMin = viewStart * 60 + (y / pxPerMin);
+        endMin = roundTo30(Math.max(viewStart * 60, Math.min(endMin, viewEnd * 60)));
+
+        let start = Math.min(dragStartMin, endMin);
+        let end = Math.max(dragStartMin, endMin);
+
+        if (end - start < 30) end = start + 30;
+
+        const startStr = toTimeStr(start);
+        const endStr = toTimeStr(end);
+
+        if (!hasOverlap(startStr, endStr)) {
+          const newBlock = {
+            id: Date.now(),
+            start: startStr,
+            end: endStr,
+            task: dragTask,
+            is_fixed: false
+          };
+          schedule.timeblocks.push(newBlock);
+          saveSchedule();
+          renderAll();
+          setStatus(`${startStr}–${endStr} 블록 추가됨`);
+          document.getElementById('task-input').value = '';
+        } else {
+          setStatus('겹치는 시간이 있습니다 (생성 취소)');
+        }
+
+        hidePreview();
+        isDragging = false;
+        dragStartMin = 0;
+        dragTask = "";
+      });
+
+      // Cancel drag if mouse leaves the wrapper
+      wrapper.addEventListener('mouseleave', () => {
+        if (isDragging) {
+          hidePreview();
+          isDragging = false;
+        }
+      });
+    }
+
+    function updatePreview(container, startMin, endMin) {
+      const preview = container.querySelector('#selection-preview');
+      if (!preview) return;
+
+      const totalMins = (viewEnd - viewStart) * 60;
+      const pxPerMin = container.offsetHeight / totalMins;
+
+      const top = (startMin - viewStart * 60) * pxPerMin;
+      const height = (endMin - startMin) * pxPerMin;
+
+      preview.style.top = `${top}px`;
+      preview.style.height = `${Math.max(height, 18)}px`;
+      preview.style.display = 'block';
+    }
+
+    function hidePreview() {
+      const container = document.getElementById('timeline-container');
+      const preview = container.querySelector('#selection-preview');
+      if (preview) preview.style.display = 'none';
+    }
+
+    // ============ Block Resize / Move Handlers ============
+    function handleBlockMouseDown(e) {
+      const blockEl = e.target.closest('.time-block');
+      if (!blockEl) return;
+
+      e.stopPropagation();
+
+      if (e.target.closest('.block-delete')) {
+        return; // allow delete click handler
+      }
+
+      const actionTarget = e.target.closest('[data-action]');
+      const action = actionTarget ? actionTarget.dataset.action : 'move';
+
+      const id = Number(blockEl.dataset.id);
+      const dataBlock = schedule.timeblocks.find(b => b.id === id);
+      if (!dataBlock) return;
+
+      const container = document.getElementById('timeline-container');
+      activeBlockDrag = {
+        id: id,
+        action: action, // 'resize-start' | 'resize-end' | 'move'
+        origStart: toMinutes(dataBlock.start),
+        origEnd: toMinutes(dataBlock.end),
+        startClientY: e.clientY,
+        startMouseMin: getMinuteFromClientY(e.clientY, container),
+        blockEl: blockEl
+      };
+
+      blockEl.classList.add('dragging');
+      e.preventDefault();
+    }
+
+    function handleBlockDragMove(e) {
+      if (!activeBlockDrag) return;
+
+      const container = document.getElementById('timeline-container');
+      if (!container) return;
+
+      let currentMin = getMinuteFromClientY(e.clientY, container);
+      currentMin = roundTo30(currentMin);
+
+      const origS = activeBlockDrag.origStart;
+      const origE = activeBlockDrag.origEnd;
+      const dur = origE - origS;
+
+      let newS = origS;
+      let newE = origE;
+
+      const delta = currentMin - activeBlockDrag.startMouseMin;
+
+      if (activeBlockDrag.action === 'resize-start') {
+        newS = roundTo30(currentMin);
+        if (newE - newS < 30) newS = newE - 30;
+      } else if (activeBlockDrag.action === 'resize-end') {
+        newE = roundTo30(currentMin);
+        if (newE - newS < 30) newE = newS + 30;
+      } else {
+        // move whole block
+        newS = roundTo30(origS + delta);
+        newE = newS + dur;
+      }
+
+      // clamp to visible range
+      newS = Math.max(viewStart * 60, Math.min(newS, viewEnd * 60 - 30));
+      newE = Math.min(viewEnd * 60, Math.max(newE, viewStart * 60 + 30));
+      if (newE - newS < 30) newE = newS + 30;
+
+      // live update the DOM element
+      const totalViewMins = (viewEnd - viewStart) * 60;
+      const pxPerMin = container.offsetHeight / totalViewMins || 1;
+      const top = (newS - viewStart * 60) * pxPerMin;
+      const h = (newE - newS) * pxPerMin;
+
+      activeBlockDrag.blockEl.style.top = `${top}px`;
+      activeBlockDrag.blockEl.style.height = `${Math.max(h, 18)}px`;
+
+      activeBlockDrag.tentativeStart = newS;
+      activeBlockDrag.tentativeEnd = newE;
+    }
+
+    function handleBlockDragEnd() {
+      if (!activeBlockDrag) return;
+
+      const drag = activeBlockDrag;
+      const blockEl = drag.blockEl;
+      blockEl.classList.remove('dragging');
+
+      let s = drag.tentativeStart != null ? drag.tentativeStart : drag.origStart;
+      let e = drag.tentativeEnd != null ? drag.tentativeEnd : drag.origEnd;
+
+      s = roundTo30(s);
+      e = roundTo30(e);
+
+      if (e - s < 30) {
+        setStatus('최소 30분 이상 유지해야 합니다.');
+        renderAll();
+        activeBlockDrag = null;
+        return;
+      }
+
+      // check overlap (exclude self)
+      const overlaps = schedule.timeblocks.some(b => {
+        if (b.id === drag.id) return false;
+        const bs = toMinutes(b.start);
+        const be = toMinutes(b.end);
+        return Math.max(s, bs) < Math.min(e, be);
+      });
+
+      if (overlaps) {
+        setStatus('다른 스케줄과 겹칩니다. 되돌립니다.');
+        renderAll();
+      } else {
+        const target = schedule.timeblocks.find(b => b.id === drag.id);
+        if (target) {
+          target.start = toTimeStr(s);
+          target.end = toTimeStr(e);
+          saveSchedule();
+          renderAll();
+          setStatus('스케줄 시간이 변경되었습니다.');
+        }
+      }
+
+      activeBlockDrag = null;
+    }
+
+    // ============ Schedule List (Rightmost human-readable) ============
+    function renderScheduleList() {
+      const container = document.getElementById('schedule-list');
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      if (!schedule.timeblocks || schedule.timeblocks.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.cssText = 'padding:14px 10px; color:#666; font-size:11px; text-align:center;';
+        empty.textContent = '오늘 등록된 일정이 없습니다';
+        container.appendChild(empty);
+        return;
+      }
+
+      const nowMin = getCurrentMinutes();
+      const sorted = [...schedule.timeblocks].sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
+
+      sorted.forEach(block => {
+        const sMin = toMinutes(block.start);
+        const eMin = toMinutes(block.end);
+        const durMin = eMin - sMin;
+        const durH = Math.floor(durMin / 60);
+        const durM = durMin % 60;
+        let durText = '';
+        if (durH > 0) durText += `${durH}시간 `;
+        if (durM > 0 || durH === 0) durText += `${durM}분`;
+
+        const isCurrent = sMin <= nowMin && nowMin < eMin;
+        const isPast = eMin <= nowMin;
+
+        const item = document.createElement('div');
+        item.className = `list-item ${isCurrent ? 'current' : ''} ${isPast ? 'past' : ''}`;
+        item.dataset.id = block.id;
+
+        const badgeHTML = block.is_fixed
+          ? '<span class="list-badge fixed">고정</span>'
+          : '<span class="list-badge">가변</span>';
+
+        const currentHTML = isCurrent ? '<span class="list-badge current">진행중</span>' : '';
+
+        item.innerHTML = `
+          <div class="list-time">${block.start} — ${block.end}</div>
+          <div class="list-task">${escapeHtml(block.task)}</div>
+          <div class="list-meta">
+            <span class="list-duration">${durText}</span>
+            ${badgeHTML}
+            ${currentHTML}
+          </div>
+        `;
+
+        item.addEventListener('click', () => {
+          const blockEl = document.querySelector(`.time-block[data-id="${block.id}"]`);
+          if (blockEl) {
+            const wrapper = document.getElementById('timeline-wrapper');
+            blockEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // flash effect
+            const originalShadow = blockEl.style.boxShadow;
+            blockEl.style.transition = 'box-shadow 0.15s';
+            blockEl.style.boxShadow = '0 0 0 4px rgba(0, 230, 118, 0.55)';
+            setTimeout(() => {
+              blockEl.style.boxShadow = originalShadow || '';
+            }, 1100);
+          }
+        });
+
+        container.appendChild(item);
+      });
+    }
+
+    // ============ 현재 일정 강조 (Left + sync) ============
+    function updateCurrentSchedule() {
+      const info = document.getElementById('current-info');
+      const taskEl = document.getElementById('current-task');
+      const remEl = document.getElementById('current-remaining');
+      const barEl = document.getElementById('current-progress-bar');
+      const hintEl = document.getElementById('current-next-hint');
+
+      if (!info || !taskEl || !remEl) return;
+
+      const now = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const nowSec = now.getSeconds();
+
+      const current = schedule.timeblocks.find(b => {
+        const s = toMinutes(b.start);
+        const e = toMinutes(b.end);
+        return s <= nowMin && nowMin < e;
+      });
+
+      // Remove current highlight from timeline blocks and list
+      document.querySelectorAll('.time-block.current, .list-item.current').forEach(el => {
+        el.classList.remove('current');
+      });
+
+      if (!current) {
+        info.classList.add('hidden');
+        info.classList.remove('urgent', 'critical');
+
+        // show next hint
+        const next = schedule.timeblocks
+          .filter(b => toMinutes(b.start) > nowMin)
+          .sort((a,b) => toMinutes(a.start) - toMinutes(b.start))[0];
+
+        if (next && hintEl) {
+          const waitMin = toMinutes(next.start) - nowMin;
+          const wH = Math.floor(waitMin / 60);
+          const wM = waitMin % 60;
+          hintEl.textContent = `다음: ${next.task} (${wH > 0 ? wH + '시간 ' : ''}${wM}분 후)`;
+        } else if (hintEl) {
+          hintEl.textContent = '';
+        }
+        return;
+      }
+
+      info.classList.remove('hidden');
+      taskEl.textContent = current.task;
+
+      const sMin = toMinutes(current.start);
+      const eMin = toMinutes(current.end);
+      const totalMin = eMin - sMin;
+      const elapsedMin = nowMin - sMin;
+      const remainingMin = eMin - nowMin;
+
+      // Remaining time with seconds
+      const remSecTotal = remainingMin * 60 - nowSec;
+      const rH = Math.floor(remSecTotal / 3600);
+      const rM = Math.floor((remSecTotal % 3600) / 60);
+      const rS = remSecTotal % 60;
+
+      let remText = '남은 시간 ';
+      if (rH > 0) remText += `${rH}시간 `;
+      remText += `${rM}분 ${rS.toString().padStart(2, '0')}초`;
+
+      remEl.textContent = remText;
+
+      // Progress bar
+      const pct = totalMin > 0 ? Math.max(0, Math.min(100, Math.round((elapsedMin / totalMin) * 100))) : 0;
+      if (barEl) barEl.style.width = `${pct}%`;
+
+      // Urgency
+      info.classList.remove('urgent', 'critical');
+      if (remainingMin <= 10) {
+        info.classList.add('critical');
+      } else if (remainingMin <= 30) {
+        info.classList.add('urgent');
+      }
+
+      if (hintEl) hintEl.textContent = '';
+
+      // Highlight in timeline and list
+      const blockEl = document.querySelector(`.time-block[data-id="${current.id}"]`);
+      if (blockEl) blockEl.classList.add('current');
+
+      const listItem = document.querySelector(`.list-item[data-id="${current.id}"]`);
+      if (listItem) listItem.classList.add('current');
+    }
+
+    // ============ Real-time Clock & Indicator ============
+    function updateClock() {
+      const el = document.getElementById('clock');
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const timeStr = now.toTimeString().slice(0, 8);
+      el.textContent = `${dateStr} ${timeStr}`;
+    }
+
+    function updateTimeIndicator() {
+      const container = document.getElementById('timeline-container');
+      const ind = container.querySelector('#time-indicator');
+      if (!ind) return;
+
+      const now = new Date();
+      const currentMin = now.getHours() * 60 + now.getMinutes();
+
+      const viewStartMin = viewStart * 60;
+      const viewEndMin = viewEnd * 60;
+
+      if (currentMin < viewStartMin || currentMin >= viewEndMin) {
+        ind.style.display = 'none';
+        return;
+      }
+
+      const totalViewMins = viewEndMin - viewStartMin;
+      const progress = (currentMin - viewStartMin) / totalViewMins;
+      const top = progress * container.offsetHeight;
+
+      ind.style.top = `${top}px`;
+      ind.style.display = 'block';
+    }
+
+    function startTimeIndicator() {
+      // Update every 30 seconds
+      setInterval(() => {
+        updateTimeIndicator();
+      }, 30000);
+
+      // Also update on window focus
+      window.addEventListener('focus', updateTimeIndicator);
+    }
+
+    // ============ View Range ============
+    function setViewRange(start, end) {
+      viewStart = start;
+      viewEnd = end;
+      renderAll();
+      updateRangeLabel();
+      // Re-position indicator
+      setTimeout(updateTimeIndicator, 10);
+    }
+
+    function updateRangeLabel() {
+      const label = document.getElementById('range-label');
+      label.textContent = `${String(viewStart).padStart(2, '0')}:00 — ${String(viewEnd).padStart(2, '0')}:00`;
+    }
+
+    function initViewControls() {
+      const buttons = document.querySelectorAll('.view-btn');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          const range = btn.dataset.range;
+          if (range === 'work') {
+            setViewRange(5, 17);
+          } else if (range === 'full') {
+            setViewRange(0, 24);
+          } else if (range === 'evening') {
+            setViewRange(4, 22);
+          }
+        });
+      });
+    }
+
+    // ============ Fixed Templates ============
+    function applyFixedTemplate(start, end, task) {
+      if (hasOverlap(start, end)) {
+        setStatus('이미 해당 시간대에 일정이 있습니다');
+        return;
+      }
+      const block = {
+        id: Date.now(),
+        start,
+        end,
+        task,
+        is_fixed: true
+      };
+      schedule.timeblocks.push(block);
+      saveSchedule();
+      renderAll();
+      setStatus(`${start}–${end} 고정 블록 추가`);
+    }
+
+    function applyAllFixed() {
+      let added = 0;
+      FIXED_TEMPLATES.forEach(tpl => {
+        if (!hasOverlap(tpl.start, tpl.end)) {
+          schedule.timeblocks.push({
+            id: Date.now() + added,
+            start: tpl.start,
+            end: tpl.end,
+            task: tpl.task,
+            is_fixed: true
+          });
+          added++;
+        }
+      });
+      if (added > 0) {
+        saveSchedule();
+        renderAll();
+        setStatus(`${added}개의 고정 일정 적용됨`);
+      } else {
+        setStatus('추가할 고정 일정이 없습니다 (중복)');
+      }
+    }
+
+    function initFixedButtons() {
+      // Individual fixed buttons
+      document.querySelectorAll('.fixed-btn[data-start]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const start = btn.dataset.start;
+          const end = btn.dataset.end;
+          const task = btn.dataset.task;
+          applyFixedTemplate(start, end, task);
+        });
+      });
+
+      // Apply all button
+      document.getElementById('apply-all-fixed').addEventListener('click', () => {
+        applyAllFixed();
+      });
+    }
+
+    function initBlockInteractions() {
+      const container = document.getElementById('timeline-container');
+      if (!container) return;
+
+      // Delegation for starting resize/move on blocks (re-created on render)
+      container.addEventListener('mousedown', handleBlockMouseDown);
+
+      // Persistent document-level listeners for live dragging of blocks
+      document.addEventListener('mousemove', (e) => {
+        if (activeBlockDrag) {
+          handleBlockDragMove(e);
+        }
+      });
+
+      document.addEventListener('mouseup', (e) => {
+        if (activeBlockDrag) {
+          handleBlockDragEnd();
+        }
+      });
+    }
+
+    function initLeftResizer() {
+      const left = document.querySelector('.left');
+      const resizer = document.getElementById('left-resizer');
+      if (!left || !resizer) return;
+
+      // Restore saved width
+      const savedWidth = localStorage.getItem('leftPanelWidth');
+      if (savedWidth) {
+        left.style.width = savedWidth;
+      }
+
+      let startX = 0;
+      let startWidth = 0;
+
+      resizer.addEventListener('mousedown', (e) => {
+        startX = e.clientX;
+        startWidth = left.offsetWidth;
+        resizer.classList.add('resizing');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+
+        const onMouseMove = (moveEvent) => {
+          const delta = moveEvent.clientX - startX;
+          let newWidth = startWidth + delta;
+          newWidth = Math.max(220, Math.min(520, newWidth)); // clamp
+          left.style.width = `${newWidth}px`;
+        };
+
+        const onMouseUp = () => {
+          resizer.classList.remove('resizing');
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+          localStorage.setItem('leftPanelWidth', left.style.width);
+
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp, { once: true });
+      });
+
+      // Double click to reset to default
+      resizer.addEventListener('dblclick', () => {
+        left.style.width = '300px';
+        localStorage.removeItem('leftPanelWidth');
+      });
+    }
+
+    // ============ Reset ============
+    function resetToFixedOnly() {
+      schedule.timeblocks = schedule.timeblocks.filter(b => b.is_fixed === true);
+      saveSchedule();
+      renderAll();
+      setStatus('가변 블록 모두 제거됨 (고정만 유지)');
+    }
+
+    // ============ Status helper ============
+    let statusTimer = null;
+    function setStatus(msg) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      clearTimeout(statusTimer);
+      statusTimer = setTimeout(() => {
+        el.textContent = '';
+      }, 2200);
+    }
+
+    // ============ Initialization ============
+    function init() {
+      loadSchedule();
+
+      // Initial view: full day
+      viewStart = 0;
+      viewEnd = 24;
+
+      // Render
+      renderAll();
+
+      // Clock + current schedule highlight
+      updateClock();
+      updateCurrentSchedule();
+      setInterval(() => {
+        updateClock();
+        updateCurrentSchedule();
+      }, 1000);
+
+      // Time indicator
+      startTimeIndicator();
+      // First immediate update after render
+      setTimeout(updateTimeIndicator, 50);
+
+      // Controls
+      initViewControls();
+      initFixedButtons();
+      initDragHandling();
+      initBlockInteractions();
+      initLeftResizer();
+
+      // Reset button
+      document.getElementById('reset-btn').addEventListener('click', resetToFixedOnly);
+
+      // Keyboard: press / to focus input (like old todo)
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement.tagName === 'BODY') {
+          e.preventDefault();
+          document.getElementById('task-input').focus();
+        }
+        if (e.key === 'Escape') {
+          hidePreview();
+          isDragging = false;
+          if (activeBlockDrag) {
+            const el = activeBlockDrag.blockEl;
+            if (el) el.classList.remove('dragging');
+            renderAll();
+            activeBlockDrag = null;
+            setStatus('조정 취소됨');
+          }
+        }
+      });
+
+      // Initial status hint
+      setTimeout(() => {
+        if (schedule.timeblocks.length === 0) {
+          setStatus('고정 템플릿을 적용하거나 직접 드래그하세요');
+        }
+      }, 800);
+
+      // Make sure indicator is correct after everything settles
+      setTimeout(updateTimeIndicator, 300);
+    }
+
+    // Boot
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
