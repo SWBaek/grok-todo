@@ -1,57 +1,74 @@
-# Todo • 간단한 할 일 앱
+# Timebox • 린 타임박싱 스케줄러
 
-GitHub Pages에 쉽게 호스팅할 수 있는 가벼운 Todo 앱입니다.
+하루 12시간의 물리적 대역폭을 통제하기 위한 **최소한의 가벼운(Lean) 데일리 스케줄러**입니다.
 
-## ✨ 주요 기능
+순수 HTML5 + CSS3 + Vanilla JS 단일 파일. 외부 라이브러리 없음.
 
-- 할 일 추가 (Enter 키 지원)
-- 완료 체크 / 토글
-- 인라인 편집 (텍스트 클릭)
-- 삭제
-- 전체 / 미완료 / 완료 필터
-- 남은 할 일 개수 표시
-- 완료된 항목 일괄 삭제
-- **드래그 앤 드롭으로 순서 변경**
-- localStorage로 브라우저에 자동 저장
-- 반응형 + 깔끔한 UI (Tailwind CSS)
+## 핵심 철학
+- 엔트로피 최소화 (LocalStorage JSON만 사용)
+- 마찰력 제로: 입력 → 드래그 2단계로 5분 만에 하루 계획 수립
+- 실시간 시각적 압박 (현재 시간 네온 인디케이터)
 
-## 🚀 지금 바로 사용하기
+## 데이터 구조 (LocalStorage)
+키: `daily_schedule`
 
-**라이브 데모**: https://SWBaek.github.io/grok-todo  (Pages 활성화 후)
-
-## GitHub Pages 활성화 방법 (마지막 단계)
-
-1. https://github.com/SWBaek/grok-todo 접속
-2. 상단 **Settings** 탭 클릭
-3. 왼쪽 사이드바에서 **Pages** 선택
-4. 다음 설정으로 변경 후 Save:
-   - Source: **Deploy from a branch**
-   - Branch: `main`
-   - Folder: `/ (root)`
-5. 저장 후 30초~1분 기다리면 `https://SWBaek.github.io/grok-todo` 에서 앱을 볼 수 있습니다.
-
-## 로컬에서 테스트하기
-
-```bash
-# 브라우저에서 직접 열기
-index.html 파일 더블클릭
-
-# 추천: 로컬 서버
-npx serve .
-# 또는
-python -m http.server 8000
+```json
+{
+  "last_updated": "2026-06-05",
+  "timeblocks": [
+    {"id": 1, "start": "05:00", "end": "09:00", "task": "GM V2G 아키텍처 설계", "is_fixed": false},
+    {"id": 2, "start": "09:00", "end": "10:00", "task": "이메일 및 Jira 확인 (노이즈 필터링)", "is_fixed": true}
+  ]
+}
 ```
 
-## 커스터마이징
+## 사용법 (마찰력 제로)
 
-- 색상: `indigo-600` 등을 원하는 Tailwind 색상으로 교체
-- 제목: HTML의 `<h1>` 수정
-- 초기 데이터: `loadTodos()` 함수의 샘플 todos 배열 수정
+1. **좌측 패널**
+   - 실시간 시계 확인
+   - 고정 템플릿 버튼 클릭으로 매일 반복 업무 즉시 주입
+   - 할 일 텍스트 입력
+
+2. **우측 타임라인**
+   - 할 일을 입력한 상태에서 타임라인 위를 **마우스 드래그** (시작→끝)
+   - 최소 30분 단위로 스냅
+   - 이미 차 있는 시간대는 중복 생성 불가 (Overlap 차단)
+
+3. 블록 우상단 × 클릭으로 삭제
+
+## 주요 기능
+- 고정 일정 (is_fixed) vs 가변 일정 분리
+- **초기화** 버튼 → 가변 블록만 제거 (고정 일정 유지)
+- 타임라인 뷰 전환: 근무시간(05-17) / 전체(00-24) / 저녁포함(04-22)
+- 실시간 현재 시간 인디케이터 (붉은 네온 라인)
+- 날짜 변경 시 자동으로 가변 블록 정리 (새로운 하루 시작)
+- 모든 변경 즉시 LocalStorage 저장
+
+## GitHub Pages 배포
+
+이 저장소는 이미 `index.html` 하나로 구성되어 있습니다.
+
+1. Settings → Pages
+2. Source: **Deploy from a branch** → `main` / `/ (root)`
+3. Save 후 https://SWBaek.github.io/grok-todo 접속
+
+## 로컬 실행
+
+```bash
+# 아무 브라우저에서 index.html 열기
+start index.html
+
+# 또는 로컬 서버
+npx serve .
+```
+
+## 단축키
+- `/` 키: 좌측 입력창 포커스
 
 ## 라이선스
-
 MIT
 
 ---
 
-완전한 정적 사이트(`index.html` 하나)라서 Netlify, Vercel 등에도 바로 배포 가능합니다.
+전력전자 박사님의 12시간을 지키기 위한 최소한의 도구.  
+필요시 더 날카롭게 다듬어 드리겠습니다.

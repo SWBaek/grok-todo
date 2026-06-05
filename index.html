@@ -3,316 +3,606 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Todo • 간단한 할 일 관리</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <title>Timebox • 린 타임박싱 스케줄러</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap');
-    
     :root {
-      --primary: #6366f1;
+      --bg: #121212;
+      --fg: #E0E0E0;
+      --muted: #888;
+      --accent: #00E676;
+      --accent-dark: #00b35c;
+      --block-bg: #1f2a24;
+      --line: #333;
+      --work-bg: #1a211d;
     }
-    
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
     body {
-      font-family: 'Inter', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
     }
 
-    .todo-item {
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .todo-item:hover {
-      background-color: #f8fafc;
-    }
-    
-    .todo-item.dragging {
-      opacity: 0.6;
-      transform: scale(0.98);
+    .app {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
     }
 
-    .todo-text {
-      transition: all 0.15s ease;
-    }
-    
-    .todo-item.completed .todo-text {
-      color: #64748b;
-      text-decoration: line-through;
-    }
-
-    .filter-btn {
-      transition: all 0.15s ease;
-    }
-    
-    .filter-btn.active {
-      background-color: #6366f1;
-      color: white;
-      box-shadow: 0 1px 2px rgba(99, 102, 241, 0.2);
+    /* Left Panel - 35% */
+    .left {
+      width: 35%;
+      min-width: 280px;
+      max-width: 420px;
+      border-right: 1px solid var(--line);
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      overflow-y: auto;
+      background: #0f0f0f;
     }
 
-    .empty-state {
-      animation: fadeIn 0.3s ease;
+    .header {
+      margin-bottom: 4px;
     }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      margin-bottom: 2px;
     }
-
-    .todo-input:focus {
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    }
-
-    .task-count {
+    .clock {
+      font-size: 13px;
+      color: var(--muted);
       font-variant-numeric: tabular-nums;
     }
 
-    .custom-checkbox {
-      width: 20px;
-      height: 20px;
-      border: 2px solid #cbd5e1;
-      border-radius: 6px;
-      transition: all 0.15s ease;
-      position: relative;
-      flex-shrink: 0;
-    }
-    
-    .custom-checkbox:hover {
-      border-color: #6366f1;
-    }
-    
-    .todo-item.completed .custom-checkbox {
-      background-color: #6366f1;
-      border-color: #6366f1;
-    }
-    
-    .custom-checkbox::after {
-      content: '';
-      position: absolute;
-      left: 5px;
-      top: 1px;
-      width: 6px;
-      height: 11px;
-      border: solid white;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
-      opacity: 0;
-      transition: opacity 0.1s ease;
-    }
-    
-    .todo-item.completed .custom-checkbox::after {
-      opacity: 1;
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
     }
 
-    .drag-handle {
-      color: #94a3b8;
-      cursor: grab;
-      opacity: 0.5;
-      transition: opacity 0.15s;
+    .fixed-templates {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
     }
-    
-    .todo-item:hover .drag-handle {
-      opacity: 0.8;
+    .fixed-btn {
+      background: #1f1f1f;
+      border: 1px solid var(--line);
+      color: var(--fg);
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.1s ease;
     }
-    
-    .drag-handle:active {
-      cursor: grabbing;
+    .fixed-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .task-input {
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid var(--line);
+      color: var(--fg);
+      padding: 10px 12px;
+      font-size: 14px;
+      border-radius: 6px;
+      outline: none;
+    }
+    .task-input:focus {
+      border-color: var(--accent);
+    }
+
+    .control-row {
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      flex: 1;
+      padding: 9px 12px;
+      font-size: 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: #1f1f1f;
+      color: var(--fg);
+      transition: all 0.1s ease;
+    }
+    .btn:hover {
+      border-color: #555;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #121212;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    .btn-primary:hover {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+    }
+    .btn-danger {
+      color: #ff6b6b;
+      border-color: #3a2a2a;
+    }
+
+    .status {
+      font-size: 11px;
+      color: var(--muted);
+      min-height: 16px;
+    }
+
+    /* Right Panel - 65% */
+    .right {
+      width: 65%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .timeline-header {
+      padding: 14px 20px 10px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      background: #0f0f0f;
+    }
+    .timeline-title {
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .view-controls {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .view-btn {
+      font-size: 11px;
+      padding: 4px 9px;
+      background: #1f1f1f;
+      border: 1px solid var(--line);
+      color: var(--fg);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .view-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .range-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 8px;
+    }
+
+    .timeline-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      position: relative;
+      background: #121212;
+    }
+
+    .timeline-container {
+      position: relative;
+      margin-left: 58px; /* space for labels */
+      margin-right: 12px;
+      min-height: 100%;
+    }
+
+    .hour-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--line);
+      z-index: 1;
+    }
+
+    .hour-label {
+      position: absolute;
+      left: -54px;
+      width: 48px;
+      text-align: right;
+      font-size: 11px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      z-index: 2;
+      user-select: none;
+    }
+
+    .work-bg {
+      position: absolute;
+      left: 0;
+      right: 0;
+      background: var(--work-bg);
+      z-index: 0;
+    }
+
+    .blocks-layer {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .time-block {
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      background: var(--block-bg);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      overflow: hidden;
+      pointer-events: auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      min-height: 22px;
+    }
+    .time-block.fixed {
+      border-color: #ff9800;
+      background: #2a241a;
+    }
+    .block-content {
+      padding: 4px 6px;
+      font-size: 12px;
+      color: var(--fg);
+      height: 100%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 4px;
+      overflow: hidden;
+    }
+    .block-task {
+      flex: 1;
+      word-break: break-word;
+      line-height: 1.25;
+    }
+    .block-delete {
+      background: none;
+      border: none;
+      color: #ff6b6b;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 2px;
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+    .block-delete:hover {
+      opacity: 1;
+    }
+    .time-block.fixed .block-delete {
+      color: #ff9800;
+    }
+
+    .selection-preview {
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      background: rgba(0, 230, 118, 0.18);
+      border: 1px dashed var(--accent);
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 15;
+      display: none;
+    }
+
+    .time-indicator {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #ff3b3b;
+      box-shadow: 0 0 6px #ff3b3b;
+      z-index: 20;
+      pointer-events: none;
+      display: none;
+    }
+    .time-indicator::after {
+      content: '';
+      position: absolute;
+      left: -4px;
+      top: -3px;
+      width: 8px;
+      height: 8px;
+      background: #ff3b3b;
+      border-radius: 50%;
+      box-shadow: 0 0 4px #ff3b3b;
+    }
+
+    .empty-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #555;
+      font-size: 12px;
+      pointer-events: none;
+      white-space: nowrap;
     }
   </style>
 </head>
-<body class="bg-slate-50 min-h-screen py-8 px-4">
-  <div class="max-w-md mx-auto">
-    <!-- Header -->
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-12 h-12 bg-indigo-600 text-white rounded-2xl mb-4 shadow-lg shadow-indigo-200">
-        <i class="fas fa-check-double text-2xl"></i>
+<body>
+  <div class="app">
+    <!-- Left Panel -->
+    <div class="left">
+      <div class="header">
+        <h1>Timebox</h1>
+        <div id="clock" class="clock">0000-00-00 00:00:00</div>
       </div>
-      <h1 class="text-3xl font-semibold text-slate-900 tracking-tight">할 일</h1>
-      <p class="text-slate-500 text-sm mt-1">간단하고 빠른 할 일 관리</p>
+
+      <div>
+        <div class="section-title">고정 템플릿</div>
+        <div class="fixed-templates">
+          <button class="fixed-btn" data-start="09:00" data-end="10:00" data-task="이메일 및 Jira 확인 (노이즈 필터링)">09:00 이메일</button>
+          <button class="fixed-btn" data-start="12:00" data-end="13:00" data-task="점심 식사 및 리셋">12:00 점심</button>
+          <button class="fixed-btn" data-start="16:00" data-end="17:00" data-task="최종 메일 확인">16:00 메일</button>
+          <button class="fixed-btn" id="apply-all-fixed" style="margin-left: auto;">전체 적용</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">태스크 입력</div>
+        <input id="task-input" type="text" class="task-input" placeholder="할 일을 입력한 후 타임라인을 드래그하세요" autocomplete="off">
+      </div>
+
+      <div>
+        <div class="section-title">시스템</div>
+        <div class="control-row">
+          <button id="reset-btn" class="btn btn-danger">초기화 (고정만 남김)</button>
+        </div>
+      </div>
+
+      <div id="status" class="status"></div>
     </div>
 
-    <!-- Main Card -->
-    <div class="bg-white rounded-3xl shadow-xl shadow-slate-200 border border-slate-100 overflow-hidden">
-      
-      <!-- Add Todo -->
-      <div class="p-5 border-b border-slate-100">
-        <div class="flex gap-2">
-          <input 
-            id="todo-input" 
-            type="text" 
-            class="todo-input flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-300 text-sm"
-            placeholder="새 할 일을 입력하세요..."
-            autocomplete="off"
-          >
-          <button 
-            id="add-btn"
-            class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-2xl font-medium text-sm flex items-center gap-2 transition-colors shadow-sm"
-          >
-            <i class="fas fa-plus"></i>
-            <span class="hidden sm:inline">추가</span>
-          </button>
+    <!-- Right Panel -->
+    <div class="right">
+      <div class="timeline-header">
+        <div>
+          <span class="timeline-title">24시간 타임라인</span>
+          <span id="range-label" class="range-label">00:00 — 24:00</span>
+        </div>
+        <div class="view-controls">
+          <button class="view-btn" data-range="work">근무 (05-17)</button>
+          <button class="view-btn active" data-range="full">전체 (00-24)</button>
+          <button class="view-btn" data-range="evening">저녁포함 (04-22)</button>
         </div>
       </div>
 
-      <!-- Todo List -->
-      <div id="todo-list-container" class="min-h-[280px] max-h-[420px] overflow-y-auto">
-        <ul id="todo-list" class="divide-y divide-slate-100"></ul>
-        
-        <!-- Empty State -->
-        <div id="empty-state" class="hidden empty-state px-8 py-12 text-center">
-          <div class="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
-            <i class="fas fa-tasks text-slate-400 text-3xl"></i>
-          </div>
-          <p class="text-slate-500 text-sm">할 일이 없습니다</p>
-          <p class="text-slate-400 text-xs mt-1">위 입력창에 할 일을 추가해보세요</p>
+      <div class="timeline-wrapper" id="timeline-wrapper">
+        <div id="timeline-container" class="timeline-container">
+          <!-- Dynamic grid lines, labels, blocks, indicator, preview injected by JS -->
         </div>
       </div>
-
-      <!-- Footer -->
-      <div id="footer" class="hidden px-5 py-4 bg-slate-50 border-t border-slate-100">
-        <div class="flex items-center justify-between text-sm">
-          <!-- Left: Count -->
-          <div class="text-slate-500">
-            <span id="items-left" class="font-medium text-slate-700 task-count">0</span>
-            <span class="text-slate-400">개 남음</span>
-          </div>
-
-          <!-- Filters -->
-          <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-2xl p-1">
-            <button data-filter="all" class="filter-btn active px-3 py-1 text-xs font-medium rounded-[14px] text-slate-700">전체</button>
-            <button data-filter="active" class="filter-btn px-3 py-1 text-xs font-medium rounded-[14px] text-slate-700 hover:bg-slate-100">미완료</button>
-            <button data-filter="completed" class="filter-btn px-3 py-1 text-xs font-medium rounded-[14px] text-slate-700 hover:bg-slate-100">완료</button>
-          </div>
-
-          <!-- Clear -->
-          <button 
-            id="clear-completed"
-            class="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors px-2 py-1"
-          >
-            완료 삭제
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Info -->
-    <div class="text-center mt-6">
-      <p class="text-[11px] text-slate-400">
-        데이터는 브라우저에 저장됩니다 • GitHub Pages 호스팅 가능
-      </p>
     </div>
   </div>
 
   <script>
-    // Tailwind script
-    function initTailwind() {
-      document.documentElement.style.setProperty('--accent', '#6366f1');
+    // ============ Constants & State ============
+    const STORAGE_KEY = 'daily_schedule';
+    const FIXED_TEMPLATES = [
+      { start: "09:00", end: "10:00", task: "이메일 및 Jira 확인 (노이즈 필터링)" },
+      { start: "12:00", end: "13:00", task: "점심 식사 및 리셋" },
+      { start: "16:00", end: "17:00", task: "최종 메일 확인" }
+    ];
+
+    let schedule = {
+      last_updated: "",
+      timeblocks: []
+    };
+
+    let viewStart = 0;   // inclusive
+    let viewEnd = 24;    // exclusive
+
+    let isDragging = false;
+    let dragStartMin = 0;
+    let dragTask = "";
+
+    const ROW_HEIGHT = 56; // px per hour
+
+    // ============ Time Helpers ============
+    function toMinutes(t) {
+      if (!t) return 0;
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + (m || 0);
     }
 
-    // State
-    let todos = [];
-    let currentFilter = 'all';
+    function toTimeStr(minutes) {
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
 
-    // Load from localStorage
-    function loadTodos() {
-      try {
-        const saved = localStorage.getItem('grok-todos');
-        if (saved) {
-          todos = JSON.parse(saved);
-        } else {
-          // Sample data for first time
-          todos = [
-            { id: Date.now() - 300000, text: 'Grok Todo 앱 만들기', completed: true },
-            { id: Date.now() - 200000, text: 'GitHub Pages에 배포하기', completed: false },
-            { id: Date.now() - 100000, text: 'README 작성하기', completed: false }
-          ];
-          saveTodos();
+    function roundTo30(mins) {
+      return Math.round(mins / 30) * 30;
+    }
+
+    function formatDate(d) {
+      return d.toISOString().slice(0, 10);
+    }
+
+    function getToday() {
+      return formatDate(new Date());
+    }
+
+    // ============ Storage ============
+    function saveSchedule() {
+      schedule.last_updated = getToday();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(schedule));
+    }
+
+    function loadSchedule() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const today = getToday();
+
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          schedule = parsed;
+
+          // Date rollover: clear non-fixed blocks if day changed
+          if (schedule.last_updated !== today) {
+            schedule.timeblocks = schedule.timeblocks.filter(b => b.is_fixed === true);
+            schedule.last_updated = today;
+            saveSchedule();
+          }
+        } catch (e) {
+          schedule = { last_updated: today, timeblocks: [] };
         }
-      } catch (e) {
-        todos = [];
-      }
-    }
-
-    function saveTodos() {
-      localStorage.setItem('grok-todos', JSON.stringify(todos));
-    }
-
-    // Render the list
-    function render() {
-      const listEl = document.getElementById('todo-list');
-      const emptyEl = document.getElementById('empty-state');
-      const footerEl = document.getElementById('footer');
-      listEl.innerHTML = '';
-
-      // Filter todos
-      let filtered = todos;
-      if (currentFilter === 'active') {
-        filtered = todos.filter(t => !t.completed);
-      } else if (currentFilter === 'completed') {
-        filtered = todos.filter(t => t.completed);
-      }
-
-      if (filtered.length === 0) {
-        emptyEl.classList.remove('hidden');
-        listEl.classList.add('hidden');
       } else {
-        emptyEl.classList.add('hidden');
-        listEl.classList.remove('hidden');
-
-        filtered.forEach((todo, index) => {
-          const li = createTodoElement(todo, index);
-          listEl.appendChild(li);
-        });
+        schedule = { last_updated: today, timeblocks: [] };
       }
-
-      // Update footer
-      updateFooter(filtered.length);
     }
 
-    function createTodoElement(todo, filteredIndex) {
-      const li = document.createElement('li');
-      li.className = `todo-item group flex items-center gap-3 px-5 py-3.5 ${todo.completed ? 'completed' : ''}`;
-      li.draggable = true;
-      li.dataset.id = todo.id;
+    // ============ Overlap Check ============
+    function hasOverlap(newStart, newEnd) {
+      const ns = toMinutes(newStart);
+      const ne = toMinutes(newEnd);
+      return schedule.timeblocks.some(b => {
+        const bs = toMinutes(b.start);
+        const be = toMinutes(b.end);
+        return Math.max(ns, bs) < Math.min(ne, be);
+      });
+    }
 
-      li.innerHTML = `
-        <div class="drag-handle px-1 py-1 select-none">
-          <i class="fas fa-grip-vertical text-base"></i>
-        </div>
-        
-        <div class="custom-checkbox cursor-pointer" data-action="toggle"></div>
-        
-        <div class="flex-1 min-w-0">
-          <span class="todo-text text-[15px] text-slate-800 select-none cursor-text" data-action="edit">${escapeHtml(todo.text)}</span>
-        </div>
-        
-        <button class="delete-btn opacity-0 group-hover:opacity-100 transition-all px-2 py-1 text-slate-400 hover:text-red-500" data-action="delete">
-          <i class="fas fa-trash-alt text-sm"></i>
-        </button>
-      `;
+    // ============ Render Grid (lines + labels + work bg) ============
+    function renderGrid() {
+      const container = document.getElementById('timeline-container');
+      container.innerHTML = '';
+      container.style.height = `${(viewEnd - viewStart) * ROW_HEIGHT}px`;
 
-      // Checkbox click
-      const checkbox = li.querySelector('.custom-checkbox');
-      checkbox.addEventListener('click', () => toggleTodo(todo.id));
+      const totalHours = viewEnd - viewStart;
 
-      // Delete button
-      const delBtn = li.querySelector('.delete-btn');
-      delBtn.addEventListener('click', (e) => {
-        e.stopImmediatePropagation();
-        deleteTodo(todo.id);
+      // Work hour backgrounds first (lowest z)
+      for (let i = 0; i < totalHours; i++) {
+        const hour = viewStart + i;
+        if (hour >= 5 && hour < 17) {
+          const bg = document.createElement('div');
+          bg.className = 'work-bg';
+          bg.style.top = `${i * ROW_HEIGHT}px`;
+          bg.style.height = `${ROW_HEIGHT}px`;
+          container.appendChild(bg);
+        }
+      }
+
+      // Hour lines and labels
+      for (let i = 0; i <= totalHours; i++) {
+        const hour = viewStart + i;
+        const top = i * ROW_HEIGHT;
+
+        const line = document.createElement('div');
+        line.className = 'hour-line';
+        line.style.top = `${top}px`;
+        container.appendChild(line);
+
+        if (i < totalHours) {
+          const label = document.createElement('div');
+          label.className = 'hour-label';
+          label.textContent = `${String(hour).padStart(2, '0')}:00`;
+          label.style.top = `${top + 4}px`;
+          container.appendChild(label);
+        }
+      }
+
+      // Empty hint
+      if (schedule.timeblocks.length === 0) {
+        const hint = document.createElement('div');
+        hint.className = 'empty-hint';
+        hint.textContent = '좌측에 할 일을 입력하고 타임라인을 드래그하세요';
+        container.appendChild(hint);
+      }
+
+      // Drag is handled globally via initDragHandling (attached once)
+    }
+
+    // ============ Render Blocks ============
+    function renderBlocks() {
+      const container = document.getElementById('timeline-container');
+      // Remove old blocks + preview + indicator if they exist as direct children
+      const oldBlocks = container.querySelectorAll('.time-block, .selection-preview, .time-indicator');
+      oldBlocks.forEach(el => el.remove());
+
+      const totalViewMins = (viewEnd - viewStart) * 60;
+      const pxPerMin = container.offsetHeight / totalViewMins;
+
+      // Create blocks layer container (for absolute positioning inside timeline-container)
+      const blocksLayer = document.createElement('div');
+      blocksLayer.className = 'blocks-layer';
+
+      // Sort for consistent stacking
+      const sorted = [...schedule.timeblocks].sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
+
+      sorted.forEach(block => {
+        const startMin = toMinutes(block.start);
+        const endMin = toMinutes(block.end);
+
+        // Skip if completely outside view
+        if (endMin <= viewStart * 60 || startMin >= viewEnd * 60) return;
+
+        const visStart = Math.max(startMin, viewStart * 60);
+        const visEnd = Math.min(endMin, viewEnd * 60);
+
+        const top = (visStart - viewStart * 60) * pxPerMin;
+        const height = Math.max((visEnd - visStart) * pxPerMin, 20);
+
+        const el = document.createElement('div');
+        el.className = `time-block ${block.is_fixed ? 'fixed' : ''}`;
+        el.style.top = `${top}px`;
+        el.style.height = `${height}px`;
+
+        el.innerHTML = `
+          <div class="block-content">
+            <span class="block-task">${escapeHtml(block.task)}</span>
+            <button class="block-delete" title="삭제">×</button>
+          </div>
+        `;
+
+        const delBtn = el.querySelector('.block-delete');
+        delBtn.addEventListener('click', (e) => {
+          e.stopImmediatePropagation();
+          schedule.timeblocks = schedule.timeblocks.filter(b => b.id !== block.id);
+          saveSchedule();
+          renderAll();
+          setStatus('블록 삭제됨');
+        });
+
+        blocksLayer.appendChild(el);
       });
 
-      // Edit on span click
-      const textSpan = li.querySelector('.todo-text');
-      textSpan.addEventListener('click', () => startEditing(li, todo));
+      container.appendChild(blocksLayer);
 
-      // Drag events
-      li.addEventListener('dragstart', handleDragStart);
-      li.addEventListener('dragend', handleDragEnd);
-      li.addEventListener('dragover', handleDragOver);
-      li.addEventListener('drop', handleDrop);
-      li.addEventListener('dragleave', handleDragLeave);
+      // Re-create selection preview and time indicator elements
+      const preview = document.createElement('div');
+      preview.className = 'selection-preview';
+      preview.id = 'selection-preview';
+      container.appendChild(preview);
 
-      return li;
+      const indicator = document.createElement('div');
+      indicator.className = 'time-indicator';
+      indicator.id = 'time-indicator';
+      container.appendChild(indicator);
+
+      // Update indicator position immediately
+      updateTimeIndicator();
     }
 
     function escapeHtml(str) {
@@ -321,258 +611,346 @@
       return div.innerHTML;
     }
 
-    function startEditing(li, todo) {
-      const textSpan = li.querySelector('.todo-text');
-      const originalText = todo.text;
+    function renderAll() {
+      renderGrid();
+      renderBlocks();
+      updateRangeLabel();
+    }
 
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = originalText;
-      input.className = 'flex-1 bg-white border border-indigo-300 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-[15px] text-slate-800 focus:outline-none';
+    // ============ Drag Logic (attached once to stable wrapper) ============
+    function initDragHandling() {
+      const wrapper = document.getElementById('timeline-wrapper');
 
-      textSpan.replaceWith(input);
-      input.focus();
-      input.select();
+      wrapper.addEventListener('mousedown', (e) => {
+        const container = document.getElementById('timeline-container');
+        if (!container) return;
 
-      const finishEdit = (save) => {
-        const newText = input.value.trim();
-        
-        if (save && newText && newText !== originalText) {
-          todo.text = newText;
-          saveTodos();
+        const taskInput = document.getElementById('task-input');
+        const task = taskInput.value.trim();
+
+        if (!task) {
+          setStatus('먼저 할 일을 입력하세요');
+          return;
         }
-        
-        render();
-      };
 
-      input.addEventListener('blur', () => finishEdit(true));
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          finishEdit(true);
-        } else if (e.key === 'Escape') {
-          e.preventDefault();
-          finishEdit(false);
+        const rect = container.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const totalMins = (viewEnd - viewStart) * 60;
+        const pxPerMin = rect.height / totalMins;
+
+        let startMin = viewStart * 60 + (y / pxPerMin);
+        startMin = roundTo30(Math.max(viewStart * 60, Math.min(startMin, viewEnd * 60 - 30)));
+
+        isDragging = true;
+        dragStartMin = startMin;
+        dragTask = task;
+
+        updatePreview(container, startMin, startMin + 30);
+      });
+
+      wrapper.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        const container = document.getElementById('timeline-container');
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const totalMins = (viewEnd - viewStart) * 60;
+        const pxPerMin = rect.height / totalMins;
+
+        let currentMin = viewStart * 60 + (y / pxPerMin);
+        currentMin = roundTo30(Math.max(viewStart * 60, Math.min(currentMin, viewEnd * 60)));
+
+        const start = Math.min(dragStartMin, currentMin);
+        const end = Math.max(dragStartMin, currentMin);
+
+        updatePreview(container, start, Math.max(end, start + 30));
+      });
+
+      // Global mouseup (captures end of drag even outside the panel)
+      document.addEventListener('mouseup', (e) => {
+        if (!isDragging) return;
+
+        const container = document.getElementById('timeline-container');
+        if (!container) {
+          isDragging = false;
+          return;
+        }
+
+        const rect = container.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const totalMins = (viewEnd - viewStart) * 60;
+        const pxPerMin = rect.height / totalMins;
+
+        let endMin = viewStart * 60 + (y / pxPerMin);
+        endMin = roundTo30(Math.max(viewStart * 60, Math.min(endMin, viewEnd * 60)));
+
+        let start = Math.min(dragStartMin, endMin);
+        let end = Math.max(dragStartMin, endMin);
+
+        if (end - start < 30) end = start + 30;
+
+        const startStr = toTimeStr(start);
+        const endStr = toTimeStr(end);
+
+        if (!hasOverlap(startStr, endStr)) {
+          const newBlock = {
+            id: Date.now(),
+            start: startStr,
+            end: endStr,
+            task: dragTask,
+            is_fixed: false
+          };
+          schedule.timeblocks.push(newBlock);
+          saveSchedule();
+          renderAll();
+          setStatus(`${startStr}–${endStr} 블록 추가됨`);
+          document.getElementById('task-input').value = '';
+        } else {
+          setStatus('겹치는 시간이 있습니다 (생성 취소)');
+        }
+
+        hidePreview();
+        isDragging = false;
+        dragStartMin = 0;
+        dragTask = "";
+      });
+
+      // Cancel drag if mouse leaves the wrapper
+      wrapper.addEventListener('mouseleave', () => {
+        if (isDragging) {
+          hidePreview();
+          isDragging = false;
         }
       });
     }
 
-    function toggleTodo(id) {
-      const todo = todos.find(t => t.id === id);
-      if (!todo) return;
-      
-      todo.completed = !todo.completed;
-      saveTodos();
-      render();
+    function updatePreview(container, startMin, endMin) {
+      const preview = container.querySelector('#selection-preview');
+      if (!preview) return;
+
+      const totalMins = (viewEnd - viewStart) * 60;
+      const pxPerMin = container.offsetHeight / totalMins;
+
+      const top = (startMin - viewStart * 60) * pxPerMin;
+      const height = (endMin - startMin) * pxPerMin;
+
+      preview.style.top = `${top}px`;
+      preview.style.height = `${Math.max(height, 18)}px`;
+      preview.style.display = 'block';
     }
 
-    function deleteTodo(id) {
-      todos = todos.filter(t => t.id !== id);
-      saveTodos();
-      render();
+    function hidePreview() {
+      const container = document.getElementById('timeline-container');
+      const preview = container.querySelector('#selection-preview');
+      if (preview) preview.style.display = 'none';
     }
 
-    function addTodo(text) {
-      const trimmed = text.trim();
-      if (!trimmed) return;
-
-      todos.unshift({
-        id: Date.now(),
-        text: trimmed,
-        completed: false
-      });
-      
-      saveTodos();
-      render();
-
-      // Clear input
-      const input = document.getElementById('todo-input');
-      input.value = '';
-      input.focus();
+    // ============ Real-time Clock & Indicator ============
+    function updateClock() {
+      const el = document.getElementById('clock');
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const timeStr = now.toTimeString().slice(0, 8);
+      el.textContent = `${dateStr} ${timeStr}`;
     }
 
-    function clearCompleted() {
-      const before = todos.length;
-      todos = todos.filter(t => !t.completed);
-      
-      if (todos.length !== before) {
-        saveTodos();
-        render();
-      }
-    }
+    function updateTimeIndicator() {
+      const container = document.getElementById('timeline-container');
+      const ind = container.querySelector('#time-indicator');
+      if (!ind) return;
 
-    function updateFooter(filteredCount) {
-      const footer = document.getElementById('footer');
-      const leftEl = document.getElementById('items-left');
-      const clearBtn = document.getElementById('clear-completed');
+      const now = new Date();
+      const currentMin = now.getHours() * 60 + now.getMinutes();
 
-      const activeCount = todos.filter(t => !t.completed).length;
-      const completedCount = todos.length - activeCount;
+      const viewStartMin = viewStart * 60;
+      const viewEndMin = viewEnd * 60;
 
-      leftEl.textContent = activeCount;
-
-      // Show footer only when there are todos
-      if (todos.length > 0) {
-        footer.classList.remove('hidden');
-      } else {
-        footer.classList.add('hidden');
+      if (currentMin < viewStartMin || currentMin >= viewEndMin) {
+        ind.style.display = 'none';
+        return;
       }
 
-      // Enable/disable clear button
-      if (completedCount > 0) {
-        clearBtn.classList.remove('text-slate-300', 'pointer-events-none');
-        clearBtn.classList.add('text-slate-400', 'hover:text-red-500');
-      } else {
-        clearBtn.classList.add('text-slate-300', 'pointer-events-none');
-        clearBtn.classList.remove('text-slate-400', 'hover:text-red-500');
-      }
+      const totalViewMins = viewEndMin - viewStartMin;
+      const progress = (currentMin - viewStartMin) / totalViewMins;
+      const top = progress * container.offsetHeight;
+
+      ind.style.top = `${top}px`;
+      ind.style.display = 'block';
     }
 
-    // Filter buttons
-    function initFilters() {
-      const buttons = document.querySelectorAll('.filter-btn');
-      
+    function startTimeIndicator() {
+      // Update every 30 seconds
+      setInterval(() => {
+        updateTimeIndicator();
+      }, 30000);
+
+      // Also update on window focus
+      window.addEventListener('focus', updateTimeIndicator);
+    }
+
+    // ============ View Range ============
+    function setViewRange(start, end) {
+      viewStart = start;
+      viewEnd = end;
+      renderAll();
+      updateRangeLabel();
+      // Re-position indicator
+      setTimeout(updateTimeIndicator, 10);
+    }
+
+    function updateRangeLabel() {
+      const label = document.getElementById('range-label');
+      label.textContent = `${String(viewStart).padStart(2, '0')}:00 — ${String(viewEnd).padStart(2, '0')}:00`;
+    }
+
+    function initViewControls() {
+      const buttons = document.querySelectorAll('.view-btn');
       buttons.forEach(btn => {
         btn.addEventListener('click', () => {
-          // Update active state
           buttons.forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
 
-          currentFilter = btn.dataset.filter;
-          render();
+          const range = btn.dataset.range;
+          if (range === 'work') {
+            setViewRange(5, 17);
+          } else if (range === 'full') {
+            setViewRange(0, 24);
+          } else if (range === 'evening') {
+            setViewRange(4, 22);
+          }
         });
       });
     }
 
-    // Drag and Drop
-    let draggedId = null;
-
-    function handleDragStart(e) {
-      draggedId = Number(this.dataset.id);
-      this.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    }
-
-    function handleDragEnd(e) {
-      this.classList.remove('dragging');
-      // Clean up any remaining drag-over styles
-      document.querySelectorAll('.todo-item').forEach(el => {
-        el.classList.remove('!border-t-2', '!border-indigo-400');
-      });
-    }
-
-    function handleDragOver(e) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      
-      const target = e.currentTarget;
-      if (target.dataset.id === String(draggedId)) return;
-
-      // Visual feedback
-      const rect = target.getBoundingClientRect();
-      const mid = rect.top + rect.height / 2;
-      
-      target.classList.remove('!border-t-2', '!border-indigo-400');
-      
-      if (e.clientY < mid) {
-        target.classList.add('!border-t-2', '!border-indigo-400');
-      } else {
-        target.classList.add('!border-b-2', '!border-indigo-400');
+    // ============ Fixed Templates ============
+    function applyFixedTemplate(start, end, task) {
+      if (hasOverlap(start, end)) {
+        setStatus('이미 해당 시간대에 일정이 있습니다');
+        return;
       }
+      const block = {
+        id: Date.now(),
+        start,
+        end,
+        task,
+        is_fixed: true
+      };
+      schedule.timeblocks.push(block);
+      saveSchedule();
+      renderAll();
+      setStatus(`${start}–${end} 고정 블록 추가`);
     }
 
-    function handleDragLeave(e) {
-      e.currentTarget.classList.remove('!border-t-2', '!border-b-2', '!border-indigo-400');
-    }
-
-    function handleDrop(e) {
-      e.preventDefault();
-      const dropTarget = e.currentTarget;
-      dropTarget.classList.remove('!border-t-2', '!border-b-2', '!border-indigo-400');
-
-      const targetId = Number(dropTarget.dataset.id);
-      if (draggedId === targetId) return;
-
-      const draggedIndex = todos.findIndex(t => t.id === draggedId);
-      const targetIndex = todos.findIndex(t => t.id === targetId);
-      
-      if (draggedIndex === -1 || targetIndex === -1) return;
-
-      // Reorder logic
-      const [draggedTodo] = todos.splice(draggedIndex, 1);
-      
-      // Determine new position
-      const rect = dropTarget.getBoundingClientRect();
-      const mid = rect.top + rect.height / 2;
-      let newIndex = targetIndex;
-      
-      if (e.clientY > mid) {
-        newIndex = targetIndex + 1;
-      }
-      
-      // Adjust because we already removed the item
-      if (newIndex > draggedIndex) newIndex--;
-
-      todos.splice(newIndex, 0, draggedTodo);
-      
-      saveTodos();
-      render();
-    }
-
-    // Event listeners
-    function initEventListeners() {
-      const input = document.getElementById('todo-input');
-      const addBtn = document.getElementById('add-btn');
-      const clearBtn = document.getElementById('clear-completed');
-
-      // Add todo
-      addBtn.addEventListener('click', () => {
-        addTodo(input.value);
-      });
-
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          addTodo(input.value);
+    function applyAllFixed() {
+      let added = 0;
+      FIXED_TEMPLATES.forEach(tpl => {
+        if (!hasOverlap(tpl.start, tpl.end)) {
+          schedule.timeblocks.push({
+            id: Date.now() + added,
+            start: tpl.start,
+            end: tpl.end,
+            task: tpl.task,
+            is_fixed: true
+          });
+          added++;
         }
       });
+      if (added > 0) {
+        saveSchedule();
+        renderAll();
+        setStatus(`${added}개의 고정 일정 적용됨`);
+      } else {
+        setStatus('추가할 고정 일정이 없습니다 (중복)');
+      }
+    }
 
-      // Clear completed
-      clearBtn.addEventListener('click', clearCompleted);
+    function initFixedButtons() {
+      // Individual fixed buttons
+      document.querySelectorAll('.fixed-btn[data-start]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const start = btn.dataset.start;
+          const end = btn.dataset.end;
+          const task = btn.dataset.task;
+          applyFixedTemplate(start, end, task);
+        });
+      });
 
-      // Keyboard shortcuts
+      // Apply all button
+      document.getElementById('apply-all-fixed').addEventListener('click', () => {
+        applyAllFixed();
+      });
+    }
+
+    // ============ Reset ============
+    function resetToFixedOnly() {
+      schedule.timeblocks = schedule.timeblocks.filter(b => b.is_fixed === true);
+      saveSchedule();
+      renderAll();
+      setStatus('가변 블록 모두 제거됨 (고정만 유지)');
+    }
+
+    // ============ Status helper ============
+    let statusTimer = null;
+    function setStatus(msg) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      clearTimeout(statusTimer);
+      statusTimer = setTimeout(() => {
+        el.textContent = '';
+      }, 2200);
+    }
+
+    // ============ Initialization ============
+    function init() {
+      loadSchedule();
+
+      // Initial view: full day
+      viewStart = 0;
+      viewEnd = 24;
+
+      // Render
+      renderAll();
+
+      // Clock
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // Time indicator
+      startTimeIndicator();
+      // First immediate update after render
+      setTimeout(updateTimeIndicator, 50);
+
+      // Controls
+      initViewControls();
+      initFixedButtons();
+      initDragHandling();
+
+      // Reset button
+      document.getElementById('reset-btn').addEventListener('click', resetToFixedOnly);
+
+      // Keyboard: press / to focus input (like old todo)
       document.addEventListener('keydown', (e) => {
         if (e.key === '/' && document.activeElement.tagName === 'BODY') {
           e.preventDefault();
-          input.focus();
+          document.getElementById('task-input').focus();
+        }
+        if (e.key === 'Escape') {
+          hidePreview();
+          isDragging = false;
         }
       });
 
-      // Click empty area to focus input (nice UX)
-      const container = document.getElementById('todo-list-container');
-      container.addEventListener('click', (e) => {
-        if (e.target.id === 'todo-list-container' || e.target.id === 'todo-list') {
-          input.focus();
-        }
-      });
-    }
-
-    // Initialize everything
-    function init() {
-      initTailwind();
-      loadTodos();
-      initEventListeners();
-      initFilters();
-      
-      // Initial render
-      render();
-
-      // Focus input on load
+      // Initial status hint
       setTimeout(() => {
-        document.getElementById('todo-input').focus();
-      }, 300);
+        if (schedule.timeblocks.length === 0) {
+          setStatus('고정 템플릿을 적용하거나 직접 드래그하세요');
+        }
+      }, 800);
 
-      // Make sure / key hint works even if focused elsewhere
-      console.log('%c[Todo] Simple Korean Todo ready. Press "/" to focus input.', 'color:#94a3b8');
+      // Make sure indicator is correct after everything settles
+      setTimeout(updateTimeIndicator, 300);
     }
 
     // Boot
