@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo • 간단한 할 일 관리</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap');
+    
+    :root {
+      --primary: #6366f1;
+    }
+    
+    body {
+      font-family: 'Inter', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+    }
+
+    .todo-item {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .todo-item:hover {
+      background-color: #f8fafc;
+    }
+    
+    .todo-item.dragging {
+      opacity: 0.6;
+      transform: scale(0.98);
+    }
+
+    .todo-text {
+      transition: all 0.15s ease;
+    }
+    
+    .todo-item.completed .todo-text {
+      color: #64748b;
+      text-decoration: line-through;
+    }
+
+    .filter-btn {
+      transition: all 0.15s ease;
+    }
+    
+    .filter-btn.active {
+      background-color: #6366f1;
+      color: white;
+      box-shadow: 0 1px 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .empty-state {
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .todo-input:focus {
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .task-count {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .custom-checkbox {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #cbd5e1;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+      position: relative;
+      flex-shrink: 0;
+    }
+    
+    .custom-checkbox:hover {
+      border-color: #6366f1;
+    }
+    
+    .todo-item.completed .custom-checkbox {
+      background-color: #6366f1;
+      border-color: #6366f1;
+    }
+    
+    .custom-checkbox::after {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 1px;
+      width: 6px;
+      height: 11px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+      opacity: 0;
+      transition: opacity 0.1s ease;
+    }
+    
+    .todo-item.completed .custom-checkbox::after {
+      opacity: 1;
+    }
+
+    .drag-handle {
+      color: #94a3b8;
+      cursor: grab;
+      opacity: 0.5;
+      transition: opacity 0.15s;
+    }
+    
+    .todo-item:hover .drag-handle {
+      opacity: 0.8;
+    }
+    
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen py-8 px-4">
+  <div class="max-w-md mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-12 h-12 bg-indigo-600 text-white rounded-2xl mb-4 shadow-lg shadow-indigo-200">
+        <i class="fas fa-check-double text-2xl"></i>
+      </div>
+      <h1 class="text-3xl font-semibold text-slate-900 tracking-tight">할 일</h1>
+      <p class="text-slate-500 text-sm mt-1">간단하고 빠른 할 일 관리</p>
+    </div>
+
+    <!-- Main Card -->
+    <div class="bg-white rounded-3xl shadow-xl shadow-slate-200 border border-slate-100 overflow-hidden">
+      
+      <!-- Add Todo -->
+      <div class="p-5 border-b border-slate-100">
+        <div class="flex gap-2">
+          <input 
+            id="todo-input" 
+            type="text" 
+            class="todo-input flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-300 text-sm"
+            placeholder="새 할 일을 입력하세요..."
+            autocomplete="off"
+          >
+          <button 
+            id="add-btn"
+            class="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-2xl font-medium text-sm flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <i class="fas fa-plus"></i>
+            <span class="hidden sm:inline">추가</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Todo List -->
+      <div id="todo-list-container" class="min-h-[280px] max-h-[420px] overflow-y-auto">
+        <ul id="todo-list" class="divide-y divide-slate-100"></ul>
+        
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden empty-state px-8 py-12 text-center">
+          <div class="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
+            <i class="fas fa-tasks text-slate-400 text-3xl"></i>
+          </div>
+          <p class="text-slate-500 text-sm">할 일이 없습니다</p>
+          <p class="text-slate-400 text-xs mt-1">위 입력창에 할 일을 추가해보세요</p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div id="footer" class="hidden px-5 py-4 bg-slate-50 border-t border-slate-100">
+        <div class="flex items-center justify-between text-sm">
+          <!-- Left: Count -->
+          <div class="text-slate-500">
+            <span id="items-left" class="font-medium text-slate-700 task-count">0</span>
+            <span class="text-slate-400">개 남음</span>
+          </div>
+
+          <!-- Filters -->
+          <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-2xl p-1">
+            <button data-filter="all" class="filter-btn active px-3 py-1 text-xs font-medium rounded-[14px] text-slate-700">전체</button>
+            <button data-filter="active" class="filter-btn px-3 py-1 text-xs font-medium rounded-[14px] text-slate-700 hover:bg-slate-100">미완료</button>
+            <button data-filter="completed" class="filter-btn px-3 py-1 text-xs font-medium rounded-[14px] text-slate-700 hover:bg-slate-100">완료</button>
+          </div>
+
+          <!-- Clear -->
+          <button 
+            id="clear-completed"
+            class="text-xs font-medium text-slate-400 hover:text-red-500 transition-colors px-2 py-1"
+          >
+            완료 삭제
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="text-center mt-6">
+      <p class="text-[11px] text-slate-400">
+        데이터는 브라우저에 저장됩니다 • GitHub Pages 호스팅 가능
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Tailwind script
+    function initTailwind() {
+      document.documentElement.style.setProperty('--accent', '#6366f1');
+    }
+
+    // State
+    let todos = [];
+    let currentFilter = 'all';
+
+    // Load from localStorage
+    function loadTodos() {
+      try {
+        const saved = localStorage.getItem('grok-todos');
+        if (saved) {
+          todos = JSON.parse(saved);
+        } else {
+          // Sample data for first time
+          todos = [
+            { id: Date.now() - 300000, text: 'Grok Todo 앱 만들기', completed: true },
+            { id: Date.now() - 200000, text: 'GitHub Pages에 배포하기', completed: false },
+            { id: Date.now() - 100000, text: 'README 작성하기', completed: false }
+          ];
+          saveTodos();
+        }
+      } catch (e) {
+        todos = [];
+      }
+    }
+
+    function saveTodos() {
+      localStorage.setItem('grok-todos', JSON.stringify(todos));
+    }
+
+    // Render the list
+    function render() {
+      const listEl = document.getElementById('todo-list');
+      const emptyEl = document.getElementById('empty-state');
+      const footerEl = document.getElementById('footer');
+      listEl.innerHTML = '';
+
+      // Filter todos
+      let filtered = todos;
+      if (currentFilter === 'active') {
+        filtered = todos.filter(t => !t.completed);
+      } else if (currentFilter === 'completed') {
+        filtered = todos.filter(t => t.completed);
+      }
+
+      if (filtered.length === 0) {
+        emptyEl.classList.remove('hidden');
+        listEl.classList.add('hidden');
+      } else {
+        emptyEl.classList.add('hidden');
+        listEl.classList.remove('hidden');
+
+        filtered.forEach((todo, index) => {
+          const li = createTodoElement(todo, index);
+          listEl.appendChild(li);
+        });
+      }
+
+      // Update footer
+      updateFooter(filtered.length);
+    }
+
+    function createTodoElement(todo, filteredIndex) {
+      const li = document.createElement('li');
+      li.className = `todo-item group flex items-center gap-3 px-5 py-3.5 ${todo.completed ? 'completed' : ''}`;
+      li.draggable = true;
+      li.dataset.id = todo.id;
+
+      li.innerHTML = `
+        <div class="drag-handle px-1 py-1 select-none">
+          <i class="fas fa-grip-vertical text-base"></i>
+        </div>
+        
+        <div class="custom-checkbox cursor-pointer" data-action="toggle"></div>
+        
+        <div class="flex-1 min-w-0">
+          <span class="todo-text text-[15px] text-slate-800 select-none cursor-text" data-action="edit">${escapeHtml(todo.text)}</span>
+        </div>
+        
+        <button class="delete-btn opacity-0 group-hover:opacity-100 transition-all px-2 py-1 text-slate-400 hover:text-red-500" data-action="delete">
+          <i class="fas fa-trash-alt text-sm"></i>
+        </button>
+      `;
+
+      // Checkbox click
+      const checkbox = li.querySelector('.custom-checkbox');
+      checkbox.addEventListener('click', () => toggleTodo(todo.id));
+
+      // Delete button
+      const delBtn = li.querySelector('.delete-btn');
+      delBtn.addEventListener('click', (e) => {
+        e.stopImmediatePropagation();
+        deleteTodo(todo.id);
+      });
+
+      // Edit on span click
+      const textSpan = li.querySelector('.todo-text');
+      textSpan.addEventListener('click', () => startEditing(li, todo));
+
+      // Drag events
+      li.addEventListener('dragstart', handleDragStart);
+      li.addEventListener('dragend', handleDragEnd);
+      li.addEventListener('dragover', handleDragOver);
+      li.addEventListener('drop', handleDrop);
+      li.addEventListener('dragleave', handleDragLeave);
+
+      return li;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function startEditing(li, todo) {
+      const textSpan = li.querySelector('.todo-text');
+      const originalText = todo.text;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = originalText;
+      input.className = 'flex-1 bg-white border border-indigo-300 focus:border-indigo-500 rounded-xl px-3 py-1.5 text-[15px] text-slate-800 focus:outline-none';
+
+      textSpan.replaceWith(input);
+      input.focus();
+      input.select();
+
+      const finishEdit = (save) => {
+        const newText = input.value.trim();
+        
+        if (save && newText && newText !== originalText) {
+          todo.text = newText;
+          saveTodos();
+        }
+        
+        render();
+      };
+
+      input.addEventListener('blur', () => finishEdit(true));
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          finishEdit(true);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          finishEdit(false);
+        }
+      });
+    }
+
+    function toggleTodo(id) {
+      const todo = todos.find(t => t.id === id);
+      if (!todo) return;
+      
+      todo.completed = !todo.completed;
+      saveTodos();
+      render();
+    }
+
+    function deleteTodo(id) {
+      todos = todos.filter(t => t.id !== id);
+      saveTodos();
+      render();
+    }
+
+    function addTodo(text) {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+
+      todos.unshift({
+        id: Date.now(),
+        text: trimmed,
+        completed: false
+      });
+      
+      saveTodos();
+      render();
+
+      // Clear input
+      const input = document.getElementById('todo-input');
+      input.value = '';
+      input.focus();
+    }
+
+    function clearCompleted() {
+      const before = todos.length;
+      todos = todos.filter(t => !t.completed);
+      
+      if (todos.length !== before) {
+        saveTodos();
+        render();
+      }
+    }
+
+    function updateFooter(filteredCount) {
+      const footer = document.getElementById('footer');
+      const leftEl = document.getElementById('items-left');
+      const clearBtn = document.getElementById('clear-completed');
+
+      const activeCount = todos.filter(t => !t.completed).length;
+      const completedCount = todos.length - activeCount;
+
+      leftEl.textContent = activeCount;
+
+      // Show footer only when there are todos
+      if (todos.length > 0) {
+        footer.classList.remove('hidden');
+      } else {
+        footer.classList.add('hidden');
+      }
+
+      // Enable/disable clear button
+      if (completedCount > 0) {
+        clearBtn.classList.remove('text-slate-300', 'pointer-events-none');
+        clearBtn.classList.add('text-slate-400', 'hover:text-red-500');
+      } else {
+        clearBtn.classList.add('text-slate-300', 'pointer-events-none');
+        clearBtn.classList.remove('text-slate-400', 'hover:text-red-500');
+      }
+    }
+
+    // Filter buttons
+    function initFilters() {
+      const buttons = document.querySelectorAll('.filter-btn');
+      
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          // Update active state
+          buttons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          currentFilter = btn.dataset.filter;
+          render();
+        });
+      });
+    }
+
+    // Drag and Drop
+    let draggedId = null;
+
+    function handleDragStart(e) {
+      draggedId = Number(this.dataset.id);
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragEnd(e) {
+      this.classList.remove('dragging');
+      // Clean up any remaining drag-over styles
+      document.querySelectorAll('.todo-item').forEach(el => {
+        el.classList.remove('!border-t-2', '!border-indigo-400');
+      });
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      
+      const target = e.currentTarget;
+      if (target.dataset.id === String(draggedId)) return;
+
+      // Visual feedback
+      const rect = target.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      
+      target.classList.remove('!border-t-2', '!border-indigo-400');
+      
+      if (e.clientY < mid) {
+        target.classList.add('!border-t-2', '!border-indigo-400');
+      } else {
+        target.classList.add('!border-b-2', '!border-indigo-400');
+      }
+    }
+
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('!border-t-2', '!border-b-2', '!border-indigo-400');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      const dropTarget = e.currentTarget;
+      dropTarget.classList.remove('!border-t-2', '!border-b-2', '!border-indigo-400');
+
+      const targetId = Number(dropTarget.dataset.id);
+      if (draggedId === targetId) return;
+
+      const draggedIndex = todos.findIndex(t => t.id === draggedId);
+      const targetIndex = todos.findIndex(t => t.id === targetId);
+      
+      if (draggedIndex === -1 || targetIndex === -1) return;
+
+      // Reorder logic
+      const [draggedTodo] = todos.splice(draggedIndex, 1);
+      
+      // Determine new position
+      const rect = dropTarget.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      let newIndex = targetIndex;
+      
+      if (e.clientY > mid) {
+        newIndex = targetIndex + 1;
+      }
+      
+      // Adjust because we already removed the item
+      if (newIndex > draggedIndex) newIndex--;
+
+      todos.splice(newIndex, 0, draggedTodo);
+      
+      saveTodos();
+      render();
+    }
+
+    // Event listeners
+    function initEventListeners() {
+      const input = document.getElementById('todo-input');
+      const addBtn = document.getElementById('add-btn');
+      const clearBtn = document.getElementById('clear-completed');
+
+      // Add todo
+      addBtn.addEventListener('click', () => {
+        addTodo(input.value);
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          addTodo(input.value);
+        }
+      });
+
+      // Clear completed
+      clearBtn.addEventListener('click', clearCompleted);
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement.tagName === 'BODY') {
+          e.preventDefault();
+          input.focus();
+        }
+      });
+
+      // Click empty area to focus input (nice UX)
+      const container = document.getElementById('todo-list-container');
+      container.addEventListener('click', (e) => {
+        if (e.target.id === 'todo-list-container' || e.target.id === 'todo-list') {
+          input.focus();
+        }
+      });
+    }
+
+    // Initialize everything
+    function init() {
+      initTailwind();
+      loadTodos();
+      initEventListeners();
+      initFilters();
+      
+      // Initial render
+      render();
+
+      // Focus input on load
+      setTimeout(() => {
+        document.getElementById('todo-input').focus();
+      }, 300);
+
+      // Make sure / key hint works even if focused elsewhere
+      console.log('%c[Todo] Simple Korean Todo ready. Press "/" to focus input.', 'color:#94a3b8');
+    }
+
+    // Boot
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
